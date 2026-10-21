@@ -39,7 +39,7 @@ jobs:
           Get-ChildItem platforms/windows/release
 
       - name: Upload Windows Artifacts to Actions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bongo-windows-packages
           path: |
