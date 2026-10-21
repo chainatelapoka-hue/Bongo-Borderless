@@ -1,0 +1,59 @@
+name: Build and Release Windows Packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-windows:
+    name: Build & Upload Windows Packages
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup default stable
+
+      - name: Setup Packaging Tools
+        shell: pwsh
+        run: |
+          choco install innosetup wixtoolset -y --no-progress
+
+      - name: Build Windows Packages
+        shell: cmd
+        run: |
+          call platforms\windows\scripts\build-windows.bat
+
+      - name: Verify Installer Artifacts
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "platforms/windows/release/*.exe"
+          $msi = Get-ChildItem "platforms/windows/release/*.msi"
+          $zip = Get-ChildItem "platforms/windows/release/*portable*.zip"
+          if (-not $exe) { throw "Setup EXE was not created!" }
+          if (-not $msi) { throw "MSI installer was not created!" }
+          if (-not $zip) { throw "Portable ZIP was not created!" }
+          Get-ChildItem platforms/windows/release
+
+      - name: Upload Windows Artifacts to Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: bongo-windows-packages
+          path: |
+            platforms/windows/release/*.exe
+            platforms/windows/release/*.msi
+            platforms/windows/release/*.zip
+            platforms/windows/release/*.sha256
+
+      - name: Attach Windows Packages to v1.0 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          files: |
+            platforms/windows/release/*.exe
+            platforms/windows/release/*.msi
+            platforms/windows/release/*.zip
+            platforms/windows/release/*.sha256
